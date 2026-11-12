@@ -47,7 +47,7 @@ services:
   - type: web
     name: nexabank-api
     runtime: docker
-    repo: # completar con la URL del repositorio Git si Render no lo autodetecta
+    repo: https://github.com/AMENAZY91/NexaBankBackend.git
     region: oregon # región razonable por defecto (us-west); cambiar si el usuario prefiere otra (ej. frankfurt para LatAm/EU)
     plan: free # cambiar a "starter" si se necesita evitar cold start por inactividad
     dockerfilePath: ./Dockerfile
