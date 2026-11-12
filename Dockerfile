@@ -22,10 +22,15 @@ COPY nexabank-api/src ./nexabank-api/src
 RUN mvn -q -pl nexabank-api -am package -DskipTests
 
 # ---- Etapa de runtime ----
-FROM eclipse-temurin:17-jre-alpine
+# eclipse-temurin:17-jre-alpine (musl libc) causa SIGSEGV nativo al cargar la librería
+# TCNative/BoringSSL de Netty que trae gRPC (usado por el SDK de Firebase Admin para
+# Firestore) — esa librería .so se publica compilada para glibc, no musl. Se usa la
+# variante Debian/glibc del mismo tag para evitar el crash (ver logs de Render del
+# primer deploy: SIGSEGV en netty_internal_tcnative_SSLContext_JNI_OnLoad).
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-RUN addgroup -S nexabank && adduser -S nexabank -G nexabank
+RUN groupadd -r nexabank && useradd -r -g nexabank nexabank
 COPY --from=build /workspace/nexabank-api/target/*.jar app.jar
 USER nexabank
 
