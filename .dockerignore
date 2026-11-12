@@ -1,0 +1,17 @@
+# Nunca debe llegar al contexto de build ni, por lo tanto, al JAR ni a la imagen —
+# en producción las credenciales de Firebase viajan por variables de entorno
+# (Secret Manager), no por este archivo. Ver docs/FRONTEND_BACKEND_INTEGRATION_PLAN.md Fase B.
+nexabank-api/src/main/resources/firebase-service-account.json
+**/*firebase-adminsdk*.json
+.env
+**/.env
+*.env
+
+# Irrelevante para la imagen del backend
+NexaBank-Frontend/
+.git/
+.firebase/
+nexabank-api/target/
+target/
+*.md
+docs/

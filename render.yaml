@@ -1,0 +1,80 @@
+# Render Blueprint para nexabank-api.
+#
+# Este Dockerfile se escribió originalmente pensando en despliegue a Google Cloud Run
+# (ver docs/FRONTEND_BACKEND_INTEGRATION_PLAN.md, Fase B) pero el despliegue real del
+# usuario es en Render, no Cloud Run. `deploy-cloud-run.sh` y las referencias a Secret
+# Manager en los docs quedan obsoletas para este despliegue — no se siguieron aquí.
+#
+# El Dockerfile es compatible sin cambios: Render inyecta la variable de entorno $PORT
+# igual que Cloud Run, y el ENTRYPOINT ya arranca con
+# `java -jar /app/app.jar --server.port=${PORT:-8080}` (ver Dockerfile línea 36), que
+# tiene prioridad sobre `server.port=${SERVER_PORT:8080}` de application.properties.
+#
+# ──────────────────────────────────────────────────────────────────────────────────
+# PASOS MANUALES QUE EL USUARIO DEBE HACER EN EL DASHBOARD DE RENDER (no automatizable
+# desde aquí: no hay CLI de Render instalada ni credenciales disponibles en este entorno):
+#
+# 1. En el dashboard de Render: New → Blueprint → conectar este repositorio Git.
+#    Render detecta este archivo (render.yaml) automáticamente en la raíz.
+# 2. Confirmar que el servicio detectado usa "Docker" como environment y que
+#    dockerContext apunta a la raíz del repo (necesario porque el Dockerfile copia
+#    tanto el pom.xml padre como nexabank-api/ — ver comentario en el propio Dockerfile).
+# 3. Para cada variable marcada "sync: false" abajo, pegar el valor real en el dashboard
+#    (Environment → Environment Variables) — estos valores NUNCA deben escribirse en este
+#    archivo ni commitearse:
+#    - FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY,
+#      FIREBASE_PRIVATE_KEY_ID, FIREBASE_CLIENT_ID: extraídos de la clave de servicio de
+#      Firebase ROTADA (la anterior fue invalidada tras quedar expuesta en texto plano
+#      en el repo — ver memoria de sesión). FIREBASE_PRIVATE_KEY debe pegarse con los
+#      saltos de línea reales o como "\n" literal (FirebaseConfig.toPem() ya maneja
+#      ambos casos — ver FirebaseConfig.java:207-209).
+#    - TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER: de la cuenta Twilio
+#      real ya decidida (ver FRONTEND_BACKEND_INTEGRATION_PLAN.md, decisión #1).
+# 4. Confirmar/ajustar ALLOWED_ORIGINS (ver valor placeholder abajo) con el dominio real
+#    donde quede publicado el frontend.
+# 5. Verificar el health check: Render usará el path configurado abajo
+#    (healthCheckPath: /actuator/health) para determinar si el deploy está sano.
+# 6. Primer deploy: Render construye la imagen con este Dockerfile y arranca el servicio.
+#    Verificar manualmente `curl https://<tu-servicio>.onrender.com/actuator/health`
+#    devuelve 200 antes de considerar el despliegue exitoso.
+# 7. Plan "free" de Render apaga el servicio tras 15 min de inactividad (cold start al
+#    siguiente request, similar a min-instances=0 de Cloud Run). Si eso es inaceptable,
+#    cambiar `plan: free` a `plan: starter` (siempre activo, de pago) en el dashboard o
+#    aquí antes del próximo deploy.
+# ──────────────────────────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: nexabank-api
+    runtime: docker
+    repo: # completar con la URL del repositorio Git si Render no lo autodetecta
+    region: oregon # región razonable por defecto (us-west); cambiar si el usuario prefiere otra (ej. frankfurt para LatAm/EU)
+    plan: free # cambiar a "starter" si se necesita evitar cold start por inactividad
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: ALLOWED_ORIGINS
+        # Placeholder: dominio real de Firebase Hosting del frontend actual. Confirmar
+        # con el usuario si el frontend se queda en Firebase Hosting o se mueve a Render/
+        # otro dominio — en ese caso este valor debe actualizarse antes de ir a producción.
+        value: "https://nexabank-core.web.app,https://nexabank-core.firebaseapp.com"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY_ID
+        sync: false
+      - key: FIREBASE_CLIENT_ID
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false

@@ -1,0 +1,22 @@
+# Credenciales — nunca deben commitearse
+**/firebase-service-account.json
+**/*firebase-adminsdk*.json
+.env
+**/.env
+
+# Maven
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Repos independientes con su propio git+remoto (NexaBank-Frontend, NexaBank-Mobile) —
+# este repo raíz es solo para el backend (Dockerfile/render.yaml/nexabank-api), no un
+# monorepo con submódulos; evita que queden como repos anidados (gitlinks) en este repo.
+NexaBank-Frontend/
+NexaBank-Mobile/
+
+# Config local de la herramienta (igual que .gitignore de NexaBank-Frontend)
+.claude/
