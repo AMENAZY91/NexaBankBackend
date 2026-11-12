@@ -37,10 +37,11 @@
 # 6. Primer deploy: Render construye la imagen con este Dockerfile y arranca el servicio.
 #    Verificar manualmente `curl https://<tu-servicio>.onrender.com/actuator/health`
 #    devuelve 200 antes de considerar el despliegue exitoso.
-# 7. Plan "free" de Render apaga el servicio tras 15 min de inactividad (cold start al
-#    siguiente request, similar a min-instances=0 de Cloud Run). Si eso es inaceptable,
-#    cambiar `plan: free` a `plan: starter` (siempre activo, de pago) en el dashboard o
-#    aquí antes del próximo deploy.
+# 7. Plan cambiado a "starter" (siempre activo, de pago) el 2026-11-12 — el cold start del
+#    plan "free" (30-60s+ en el primer request tras 15 min sin tráfico) rompía el flujo de OTP
+#    para usuarios reales. Confirma/activa el plan Starter para este servicio en el dashboard
+#    de Render (Settings → Instance Type) — el cambio en este archivo no mueve la facturación
+#    por sí solo.
 # ──────────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -49,7 +50,10 @@ services:
     runtime: docker
     repo: https://github.com/AMENAZY91/NexaBankBackend.git
     region: oregon # región razonable por defecto (us-west); cambiar si el usuario prefiere otra (ej. frankfurt para LatAm/EU)
-    plan: free # cambiar a "starter" si se necesita evitar cold start por inactividad
+    plan: starter # siempre activo (sin cold start) — cambiado de "free" el 2026-11-12 tras confirmar
+    # que el cold start (30-60s+ en el primer request tras 15 min sin tráfico) rompía el flujo de
+    # OTP para usuarios reales. Requiere que el plan "Starter" esté habilitado/pagado en el dashboard
+    # de Render para este servicio — este archivo por sí solo no activa la facturación.
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /actuator/health
